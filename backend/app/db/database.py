@@ -1,26 +1,19 @@
-from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
-from dotenv import load_dotenv
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.orm import sessionmaker, declarative_base
 import os
 
-# Load environment variables from .env
-load_dotenv()
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+asyncpg://postgres:0511@localhost:5432/cyber_intel_db")
 
-# Read the URL from the .env file
-SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL")
+engine = create_async_engine(DATABASE_URL, echo=True)
+AsyncSessionLocal = sessionmaker(
+    bind=engine,
+    class_=AsyncSession,
+    expire_on_commit=False
+)
 
-# Create engine
-engine = create_engine(SQLALCHEMY_DATABASE_URL)
-
-# Session and Base setup
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
-# Dependency to get DB session
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+# Dependency
+async def get_db():
+    async with AsyncSessionLocal() as session:
+        yield session
